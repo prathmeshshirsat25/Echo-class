@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoClass - Smart Lecture Notes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f6fa;
+      color: #2c3e50;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: #2c3e50;
+      color: #ecf0f1;
+      border-radius: 12px;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+    }
+
+    .container {
+      margin-top: 2rem;
+      display: flex;
+      gap: 2rem;
+    }
+
+    .recorder {
+      flex: 1;
+      background: #ffffff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .recorder button {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #3498db;
+      color: white;
+      transition: background 0.3s;
+    }
+
+    .recorder button:hover {
+      background-color: #2980b9;
+    }
+
+    .transcript {
+      flex: 2;
+      background: #ffffff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .keyword {
+      background: #ffeaa7;
+      color: #2d3436;
+      padding: 0.2rem 0.5rem;
+      border-radius: 5px;
+      margin: 0 0.3rem;
+      display: inline-block;
+    }
+
+    .summary {
+      margin-top: 2rem;
+      background: #dff9fb;
+      padding: 1rem;
+      border-left: 4px solid #00cec9;
+      border-radius: 8px;
+      font-style: italic;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>EchoClass</h1>
+    <p>Smart Lecture Transcriber</p>
+  </header>
+
+  <div class="container">
+    <div class="recorder">
+      <h2>🎙️ Start Transcription</h2>
+      <p>Click the button and start speaking.</p>
+      <div class="button-group">
+        <button onclick="startTranscription()">Start Recording</button>
+        <button onclick="stopTranscription()">Stop Recording</button>
+      </div>
+      <p id="status"></p>
+    </div>
+
+    <div class="transcript">
+      <h2>📜 Transcript</h2>
+      <div id="output"></div>
+      <div class="summary" id="summaryBox" style="display:none;">
+        <strong>Summary:</strong> <span id="summaryText"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let recognition;
+    let isRecording = false;
+
+    function startTranscription() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('Speech Recognition not supported. Use Chrome.');
+        return;
+      }
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      let finalTranscript = '';
+
+      recognition.onstart = () => {
+        isRecording = true;
+        document.getElementById('status').innerText = 'Recording...';
+      };
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        const highlighted = highlightKeywords(finalTranscript + interim);
+        document.getElementById('output').innerHTML = highlighted;
+
+        if (finalTranscript.length > 100) {
+          generateSummary(finalTranscript);
+        }
+      };
+
+      recognition.onerror = (e) => {
+        document.getElementById('status').innerText = 'Error: ' + e.error;
+      };
+
+      recognition.onend = () => {
+        isRecording = false;
+        document.getElementById('status').innerText = 'Recording stopped.';
+      };
+
+      recognition.start();
+    }
+
+    function stopTranscription() {
+      if (recognition && isRecording) {
+        recognition.stop();
+      }
+    }
+
+    function highlightKeywords(text) {
+      const keywords = ['definition', 'important', 'note', 'remember', 'concept', 'example'];
+      let output = text;
+      keywords.forEach(word => {
+        const regex = new RegExp('\b' + word + '\b', 'gi');
+        output = output.replace(regex, `<span class="keyword">${word}</span>`);
+      });
+      return output;
+    }
+
+    function generateSummary(text) {
+      const firstSentence = text.split('.')[0];
+      document.getElementById('summaryText').innerText = firstSentence + '.';
+      document.getElementById('summaryBox').style.display = 'block';
+    }
+  </script>
+</body>
+
+</html>
